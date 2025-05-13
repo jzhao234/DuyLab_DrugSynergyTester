@@ -132,12 +132,28 @@ export default function Inhibition() {
     svg
         .append("g")
         .attr("transform", `translate(0,${height - margin.bottom + 20})`)
-        .call(d3.axisBottom(x).tickFormat(d3.format("~s")));
+        .call(d3.axisBottom(x).tickFormat(d3.format("~s")))
+        .call(g =>
+            g.selectAll("text")
+            .attr("class", "fill-black dark:fill-white")
+        )
+        .call(g =>
+            g.selectAll("path,line")
+            .attr("class", "stroke-black dark:stroke-white")
+        );
 
     svg
         .append("g")
         .attr("transform", `translate(${margin.left},0)`)
-        .call(d3.axisLeft(y).tickFormat(d3.format("~s")));
+        .call(d3.axisLeft(y).tickFormat(d3.format("~s")))
+        .call(g =>
+            g.selectAll("text")
+            .attr("class", "fill-black dark:fill-white")
+        )
+        .call(g =>
+            g.selectAll("path,line")
+            .attr("class", "stroke-black dark:stroke-white")
+        );
 
     // Axis labels
     svg
@@ -145,7 +161,8 @@ export default function Inhibition() {
         .attr("x", width / 2)
         .attr("y", height)
         .style("text-anchor", "middle")
-        .text(`${drug1Name}`);
+        .attr("class", "fill-black dark:fill-white")
+        .text(`${drug1Name}`)
 
     svg
         .append("text")
@@ -153,16 +170,16 @@ export default function Inhibition() {
         .attr("x", -height / 2)
         .attr("y", 15)
         .style("text-anchor", "middle")
-        .text(`${drug2Name}`);
-
+        .attr("class", "fill-black dark:fill-white")
+        .text(`${drug2Name}`)
 
   }, [Data]);
 
-  if (!Data) return <p>No File Information Uploaded</p>;
+  if (!Data) return <p className="text-black dark:text-white">No File Information Uploaded</p>;
 
   return (
     <div className="p-4">
-      <h2 className="text-xl font-bold mb-2"> Drug Inhibition </h2>
+      <h2 className="text-xl font-bold mb-2 text-black dark:text-white"> Drug Inhibition </h2>
       <svg ref={svgRef}></svg>
     </div>
   );

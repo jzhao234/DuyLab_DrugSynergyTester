@@ -146,9 +146,23 @@ export default function Bliss() {
         .range([height - margin.top, margin.bottom])
         .padding(0.05);
 
-    const color = d3
-        .scaleSequential(d3.interpolateReds)
-        .domain(d3.extent(synergyData, (d) => d.Value));
+    const synergyValues = synergyData.map(d => d.Value);
+
+    // Values > 0
+    const positiveMax = d3.max(synergyValues.filter(v => v > 0)) || 0;
+
+    // Values < 0
+    const negativeMin = d3.min(synergyValues.filter(v => v < 0)) || 0;
+
+    // Define color scales with dynamic domain
+    const colorScaleGreater = d3
+    .scaleSequential(d3.interpolateReds)
+    .domain([0, positiveMax]);
+
+    const colorScaleLesser = d3
+    .scaleSequential(d3.interpolateBlues)
+    .domain([0, Math.abs(negativeMin)]); // domain must go low to high
+
 
     // Draw heatmap squares
     svg
@@ -160,13 +174,102 @@ export default function Bliss() {
         .attr("y", (d) => y(d.Conc2))
         .attr("width", x.bandwidth())
         .attr("height", y.bandwidth())
-        .attr("fill", (d) => color(d.Value));
+        .attr("fill", (d) => {
+            if (d.Value >= 0) {
+                return colorScaleGreater(d.Value);
+            } else {
+                return colorScaleLesser(d.Value);
+            }
+        });
+
+
+    // Dual Color Legends
+    const legendHeight = 10;
+    const legendBarWidth = 140;
+    const legendSpacing = 20;
+
+    const legendGroup = svg.append("g")
+        .attr("transform", `translate(${(width - (legendBarWidth * 2 + legendSpacing)) / 2}, ${margin.top - 30})`);
+
+    // Define gradients
+    const defs = svg.append("defs");
+
+    // Red Gradient (Positive Values)
+    const redGradientId = "legend-gradient-red";
+    const redGradient = defs.append("linearGradient")
+        .attr("id", redGradientId)
+        .attr("x1", "0%")
+        .attr("x2", "100%");
+
+    redGradient.selectAll("stop")
+        .data(d3.ticks(0, positiveMax, 10))
+        .enter()
+        .append("stop")
+        .attr("offset", (d, i, n) => `${(100 * i) / (n.length - 1)}%`)
+        .attr("stop-color", d => colorScaleGreater(d));
+
+    // Blue Gradient (Negative Values)
+    const blueGradientId = "legend-gradient-blue";
+    const blueGradient = defs.append("linearGradient")
+        .attr("id", blueGradientId)
+        .attr("x1", "0%")
+        .attr("x2", "100%");
+
+    blueGradient.selectAll("stop")
+        .data(d3.ticks(negativeMin, 0, 10))
+        .enter()
+        .append("stop")
+        .attr("offset", (d, i, n) => `${(100 * i) / (n.length - 1)}%`)
+        .attr("stop-color", d => colorScaleLesser(Math.abs(d)));
+
+    // Append red legend
+    legendGroup.append("rect")
+        .attr("x", legendBarWidth + legendSpacing)
+        .attr("width", legendBarWidth)
+        .attr("height", legendHeight)
+        .style("fill", `url(#${redGradientId})`);
+
+    // Append blue legend
+    legendGroup.append("rect")
+        .attr("width", legendBarWidth)
+        .attr("height", legendHeight)
+        .style("fill", `url(#${blueGradientId})`);
+
+    // Scales for legends
+    const blueLegendScale = d3.scaleLinear()
+        .domain([negativeMin, 0])
+        .range([0, legendBarWidth]);
+
+    const redLegendScale = d3.scaleLinear()
+        .domain([0, positiveMax])
+        .range([0, legendBarWidth]);
+
+    // Axes for legends
+    legendGroup.append("g")
+        .attr("transform", `translate(0, ${legendHeight})`)
+        .call(d3.axisBottom(blueLegendScale).ticks(5).tickFormat(d3.format("~s")))
+        .call(g => g.selectAll("text").attr("class", "fill-black dark:fill-white"))
+        .call(g => g.selectAll("path,line").attr("class", "stroke-black dark:stroke-white"));
+
+    legendGroup.append("g")
+        .attr("transform", `translate(${legendBarWidth + legendSpacing}, ${legendHeight})`)
+        .call(d3.axisBottom(redLegendScale).ticks(5).tickFormat(d3.format("~s")))
+        .call(g => g.selectAll("text").attr("class", "fill-black dark:fill-white"))
+        .call(g => g.selectAll("path,line").attr("class", "stroke-black dark:stroke-white"));
 
     // Add axes
     svg
         .append("g")
         .attr("transform", `translate(0,${height - margin.bottom + 20})`)
-        .call(d3.axisBottom(x).tickFormat(d3.format("~s")));
+        .call(d3.axisBottom(x).tickFormat(d3.format("~s")))
+        .call(g =>
+            g.selectAll("text")
+            .attr("class", "fill-black dark:fill-white")
+        )
+        .call(g =>
+            g.selectAll("path,line")
+            .attr("class", "stroke-black dark:stroke-white")
+        );
 
     svg
         .append("g")
@@ -179,7 +282,8 @@ export default function Bliss() {
         .attr("x", width / 2)
         .attr("y", height)
         .style("text-anchor", "middle")
-        .text(`${drug1Name}`);
+        .attr("class", "fill-black dark:fill-white")
+        .text(`${drug1Name}`)
 
     svg
         .append("text")
@@ -187,17 +291,18 @@ export default function Bliss() {
         .attr("x", -height / 2)
         .attr("y", 15)
         .style("text-anchor", "middle")
+        .attr("class", "fill-black dark:fill-white")
         .text(`${drug2Name}`);
 
 
   }, [Data]);
 
-  if (!Data) return <p>No File Information Uploaded</p>;
+  if (!Data) return <p className="text-black dark:text-white">No File Information Uploaded</p>;
 
   return (
     <div className="p-4">
-      <h2 className="text-xl font-bold mb-2"> Drug Synergy </h2>
-      <svg ref={svgRef}></svg>
+      <h2 className="text-xl font-bold mb-2 text-black dark:text-white"> Drug Synergy </h2>
+      <svg ref={svgRef} className="text-black dark:text-white"></svg>
     </div>
   );
 }

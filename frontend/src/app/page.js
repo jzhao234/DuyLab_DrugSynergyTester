@@ -3,6 +3,7 @@ import Image from "next/image";
 import Sidebar from "@/components/Sidebar";
 import Bliss from "@/components/Bliss"
 import Inhibition from "@/components/Inhibition";
+import BlissContour from "@/components/BlissContour";
 
 export default function Home() {
   return (
@@ -11,6 +12,7 @@ export default function Home() {
         <div className="flex">
           <div className="basis-full">
             <Inhibition/>
+            <BlissContour/>
             <Bliss/>
           </div>
           <div className="basis-64">
